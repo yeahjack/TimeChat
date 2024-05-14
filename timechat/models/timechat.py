@@ -11,6 +11,7 @@ from timechat.models.blip2 import Blip2Base, disabled_train
 from timechat.models.modeling_llama import LlamaForCausalLM
 # from timechat.models.Qformer import BertEncoder
 from transformers import LlamaTokenizer, BertConfig
+from transformers import AutoTokenizer, AutoModelForCausalLM
 # from transformers.models.bert.modeling_bert import BertEncoder
 import einops
 import copy
@@ -137,11 +138,14 @@ class TimeChat(Blip2Base):
 
         logging.info('Loading LLAMA Model')
         if self.low_resource:
-            self.llama_model = LlamaForCausalLM.from_pretrained(
+            logging.info('Loading in Low resource mode!')
+            #self.llama_model = LlamaForCausalLM.from_pretrained(
+            self.llama_model = AutoModelForCausalLM.from_pretrained(
                 llama_model,
-                torch_dtype=torch.bfloat16,
+                #torch_dtype=torch.bfloat16,
                 load_in_8bit=True,
-                device_map={'': device_8bit}
+                # device_map={'': device_8bit},
+                attn_implementation="flash_attention_2",
             )
         else:
             if max_txt_len > 2048:
@@ -153,7 +157,8 @@ class TimeChat(Blip2Base):
                     rope_scaling={
                         "type": "linear",
                         "factor": 2.0
-                    }
+                    },
+                    #attn_implementation="flash_attention_2",
                 )
             else:
                 self.llama_model = LlamaForCausalLM.from_pretrained(

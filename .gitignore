@@ -29,3 +29,5 @@ MANIFEST
 .idea
 examples/*
 ckpt/*
+images
+videos
