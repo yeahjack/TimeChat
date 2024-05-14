@@ -247,6 +247,7 @@ class Chat:
                 width=224,
                 sampling="uniform", return_msg=True
             )
+            
             video = self.vis_processor.transform(video)
             video = video.unsqueeze(0).to(self.device)
             # print(image)
@@ -272,6 +273,46 @@ class Chat:
         img_list.append(image_emb)
         conv.append_message(conv.roles[0], "<Video><ImageHere></Video> " + msg)
         return "Received."
+    
+    def upload_video_without_audio_backend(self, video_path, conv, img_list, n_frms=8):
+        msg = ""
+        if isinstance(video_path, str):  # is a video path
+            ext = os.path.splitext(video_path)[-1].lower()
+            # print(video_path)
+            # image = self.vis_processor(image).unsqueeze(0).to(self.device)
+            video, msg = load_video(
+                video_path=video_path,
+                n_frms=n_frms,
+                height=224,
+                width=224,
+                sampling="uniform", return_msg=True
+            )
+            
+            video = self.vis_processor.transform(video)
+            video = video.unsqueeze(0).to(self.device)
+            # print(image)
+            if self.model.qformer_text_input:
+                # timestamp
+                timestamps = msg.split('at')[1].replace('seconds.', '').strip().split(
+                    ',')  # extract timestamps from msg
+                timestamps = [f'This frame is sampled at {t.strip()} second.' for t in timestamps]
+                timestamps = self.model.tokenizer(
+                    timestamps,
+                    return_tensors="pt",
+                    padding="longest",
+                    max_length=32,
+                    truncation=True,
+                )
+        else:
+            raise NotImplementedError
+        # conv.system = "You can understand the video that the user provides.  Follow the instructions carefully and explain your answers in detail."
+        if self.model.qformer_text_input:
+            image_emb, _ = self.model.encode_videoQformer_visual(video, timestamp=timestamps)
+        else:
+            image_emb, _ = self.model.encode_videoQformer_visual(video)
+        img_list.append(image_emb)
+        conv.append_message(conv.roles[0], "<Video><ImageHere></Video> " + msg)
+        return img_list,"Received."
 
     def upload_img(self, image, conv, img_list):
 

@@ -27,3 +27,5 @@ share/python-wheels/
 *.egg
 MANIFEST
 .idea
+examples/*
+ckpt/*
